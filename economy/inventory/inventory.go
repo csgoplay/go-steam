@@ -7,8 +7,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
 	"github.com/Philipp15b/go-steam/jsont"
-	"strconv"
 )
 
 type GenericInventory map[uint32]map[uint64]*Inventory
@@ -43,74 +43,87 @@ func (i *GenericInventory) Add(appId uint32, contextId uint64, inv *Inventory) {
 }
 
 type Inventory struct {
-	Items        Items        `json:"rgInventory"`
-	Currencies   Currencies   `json:"rgCurrency"`
-	Descriptions Descriptions `json:"rgDescriptions"`
+	Items Items `json:"assets"`
+	// Currencies   Currencies   `json:"rgCurrency"`
+	Descriptions Descriptions `json:"descriptions"`
 	AppInfo      *AppInfo     `json:"rgAppInfo"`
 }
 
 // Items key is an AssetId
-type Items map[string]*Item
+type Items []Item
 
-func (i *Items) ToMap() map[string]*Item {
-	return (map[string]*Item)(*i)
+func (i *Items) ToMap() []Item {
+	return (Items)(*i)
 }
 
 func (i *Items) Get(assetId uint64) (*Item, error) {
-	iMap := (map[string]*Item)(*i)
-	if item, ok := iMap[strconv.FormatUint(assetId, 10)]; ok {
-		return item, nil
+	list := ([]Item)(*i)
+	for _, item := range list {
+		if item.AssetID == assetId {
+			return &item, nil
+		}
 	}
+
 	return nil, fmt.Errorf("item not found")
 }
 
-func (i *Items) UnmarshalJSON(data []byte) error {
-	if bytes.Equal(data, []byte("[]")) {
-		return nil
-	}
-	return json.Unmarshal(data, (*map[string]*Item)(i))
-}
+// func (i *Items) UnmarshalJSON(data []byte) error {
+// 	if bytes.Equal(data, []byte("[]")) {
+// 		return nil
+// 	}
+// 	return json.Unmarshal(data, (*map[string]*Item)(i))
+// }
 
-type Currencies map[string]*Currency
-
-func (c *Currencies) ToMap() map[string]*Currency {
-	return (map[string]*Currency)(*c)
-}
-
-func (c *Currencies) UnmarshalJSON(data []byte) error {
-	if bytes.Equal(data, []byte("[]")) {
-		return nil
-	}
-	return json.Unmarshal(data, (*map[string]*Currency)(c))
-}
+// type Currencies map[string]*Currency
+//
+// func (c *Currencies) ToMap() map[string]*Currency {
+// 	return (map[string]*Currency)(*c)
+// }
+//
+// func (c *Currencies) UnmarshalJSON(data []byte) error {
+// 	if bytes.Equal(data, []byte("[]")) {
+// 		return nil
+// 	}
+// 	return json.Unmarshal(data, (*map[string]*Currency)(c))
+// }
 
 // Descriptions key format is %d_%d, first %d is ClassId, second is InstanceId
-type Descriptions map[string]*Description
+type Descriptions []Description
 
-func (d *Descriptions) ToMap() map[string]*Description {
-	return (map[string]*Description)(*d)
+func (d Descriptions) ToSlice() []Description {
+	return ([]Description)(d)
 }
 
 func (d *Descriptions) Get(classId uint64, instanceId uint64) (*Description, error) {
-	dMap := (map[string]*Description)(*d)
-	descId := fmt.Sprintf("%v_%v", classId, instanceId)
-	if desc, ok := dMap[descId]; ok {
-		return desc, nil
+	list := d.ToSlice()
+	for _, description := range list {
+		if description.ClassId == classId && description.InstanceId == instanceId {
+			return &description, nil
+		}
 	}
+
+	// dMap := (map[string]*Description)(*d)
+	// descId := fmt.Sprintf("%v_%v", classId, instanceId)
+	// if desc, ok := dMap[descId]; ok {
+	// 	return desc, nil
+	// }
+
 	return nil, fmt.Errorf("description not found")
 }
 
-func (d *Descriptions) UnmarshalJSON(data []byte) error {
-	if bytes.Equal(data, []byte("[]")) {
-		return nil
-	}
-	return json.Unmarshal(data, (*map[string]*Description)(d))
-}
+// func (d *Descriptions) UnmarshalJSON(data []byte) error {
+// 	if bytes.Equal(data, []byte("[]")) {
+// 		return nil
+// 	}
+//
+// 	return json.Unmarshal(data, d.ToSlice())
+// }
 
 type Item struct {
 	Id         uint64 `json:",string"`
 	ClassId    uint64 `json:",string"`
 	InstanceId uint64 `json:",string"`
+	AssetID    uint64 `json:",string"`
 	Amount     uint64 `json:",string"`
 	Pos        uint32
 }
@@ -123,9 +136,9 @@ type Currency struct {
 }
 
 type Description struct {
-	AppId      uint32 `json:",string"`
-	ClassId    uint64 `json:",string"`
-	InstanceId uint64 `json:",string"`
+	AppId      uint32 `json:"appid"`
+	ClassId    uint64 `json:"classid,string"`
+	InstanceId uint64 `json:"instanceid,string"`
 
 	IconUrl      string `json:"icon_url"`
 	IconUrlLarge string `json:"icon_url_large"`
@@ -144,7 +157,7 @@ type Description struct {
 	Tradable                  jsont.UintBool
 	Marketable                jsont.UintBool
 	Commodity                 jsont.UintBool
-	MarketTradableRestriction uint32 `json:"market_tradable_restriction,string"`
+	MarketTradableRestriction uint32 `json:"market_tradable_restriction"`
 
 	Descriptions DescriptionLines
 	Actions      []*Action
@@ -181,8 +194,8 @@ type AppInfo struct {
 }
 
 type Tag struct {
-	InternalName string `json:internal_name`
+	InternalName string `json:"internal_name"`
 	Name         string
 	Category     string
-	CategoryName string `json:category_name`
+	CategoryName string `json:"category_name"`
 }

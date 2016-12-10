@@ -5,15 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"github.com/csgoplay/go-steam/jsont"
 )
 
 // A partial inventory as sent by the Steam API.
 type PartialInventory struct {
-	Success bool
+	Success jsont.UintBool
 	Error   string
 	Inventory
-	More      bool
-	MoreStart MoreStart `json:"more_start"`
+	// More      bool
+	// MoreStart MoreStart `json:"more_start"`
+	Count int `json:"total_inventory_count"`
 }
 
 type MoreStart uint
@@ -50,18 +53,18 @@ func GetFullInventory(getFirst func() (*PartialInventory, error), getNext func(s
 	}
 
 	result := &first.Inventory
-	var next *PartialInventory
-	for latest := first; latest.More; latest = next {
-		next, err := getNext(uint(latest.MoreStart))
-		if err != nil {
-			return nil, err
-		}
-		if !next.Success {
-			return nil, errors.New("GetFullInventory API call failed: " + next.Error)
-		}
-
-		result = Merge(result, &next.Inventory)
-	}
+	// var next *PartialInventory
+	// for latest := first; latest.More; latest = next {
+	// 	next, err := getNext(uint(latest.MoreStart))
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if !next.Success {
+	// 		return nil, errors.New("GetFullInventory API call failed: " + next.Error)
+	// 	}
+	//
+	// 	result = Merge(result, &next.Inventory)
+	// }
 
 	return result, nil
 }
@@ -81,9 +84,6 @@ func Merge(p ...*Inventory) *Inventory {
 		}
 		for key, value := range i.Descriptions {
 			inv.Descriptions[key] = value
-		}
-		for key, value := range i.Currencies {
-			inv.Currencies[key] = value
 		}
 	}
 
